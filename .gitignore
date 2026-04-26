@@ -1,0 +1,48 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# venvs
+.venv/
+env/
+venv/
+ENV/
+
+# editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# build / distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# checkpoints + logs (not redistributed)
+checkpoints/
+results/
+logs/
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.hdf5
+
+# LaTeX build artefacts
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+
+# OS noise
+.DS_Store
+Thumbs.db

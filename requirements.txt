@@ -1,0 +1,18 @@
+# Core
+torch>=2.0
+numpy>=1.24
+
+# Optional (only required to run scripts/build_ood_data.py and scripts/eval_gbon.py;
+# the package itself + tests/test_smoke.py work without them).
+# transformers>=4.49
+# h5py
+# Pillow
+# pyyaml
+
+# To run on real LIBERO envs you additionally need:
+#   - LIBERO    (https://github.com/Lifelong-Robot-Learning/LIBERO)
+#   - libero-plus  (https://github.com/sylvestf/LIBERO-plus)
+#   - OpenVLA-OFT  (https://openvla-oft.github.io/)
+#   - robosuite, mujoco
+# These are not pip-installable from this requirements.txt; follow each
+# project's installation instructions.
