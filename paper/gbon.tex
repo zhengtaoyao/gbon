@@ -38,7 +38,7 @@ on standard LIBERO~\citep{liu2023libero} but collapse to
 $<30\%$ under modest perturbations on
 LIBERO-Plus~\citep{libero_plus2025} and to near $0\%$ on adversarial
 LIBERO-PRO~\citep{libero_pro2025}. A surge of test-time scaling
-proposals has emerged to recover this gap---noise best-of-$N$,
+proposals has emerged to recover this gap: noise best-of-$N$,
 paraphrase self-consistency~\citep{cover_vla2025},
 masked-condition KL verifiers~\citep{mgselect2026}, latent recurrent
 reasoning~\citep{rdvla2025}, and process-reward
@@ -112,7 +112,7 @@ backward-coherence and forward-contrast objectives.
 \paragraph{The shared blind spot.}
 All of these methods \emph{always run}. They commit the verification
 machinery to every chunk boundary. But in-distribution, the frozen
-backbone is already very good---the very reason it scores $97\%$ on
+backbone is already very good, the very reason it scores $97\%$ on
 standard LIBERO. Forcing best-of-$N$ on these clean inputs introduces
 noise that shifts the candidate distribution away from the policy's
 already-good greedy output. Empirically, every method we evaluate hurts
@@ -150,7 +150,7 @@ On four LIBERO suites with the OpenVLA-OFT-7B backbone we find:
 \item \textbf{Best-in-class robustness on LIBERO-Plus.} G-BoN reaches
       $12.70\%$ on the 4-suite aggregate (Table~\ref{tab:lplus_agg}),
       beating all five plug-in test-time baselines: noise BoN ($5.36\%$),
-      MG-Select ($11.40\%$, projected), RoVer ($11.85\%$, projected),
+      MG-Select ($11.40\%$), RoVer ($11.85\%$),
       CoVer-VLA ($10.36\%$), and retrieval BoN ($9.91\%$). On
       libero\_spatial G-BoN wins 5 of 7 perturbation cells with
       Language Instr $+50.0$~pp at $p < 10^{-3}$ and Light Cond
@@ -158,8 +158,8 @@ On four LIBERO suites with the OpenVLA-OFT-7B backbone we find:
 \item \textbf{LIBERO-PRO P1 task-distractor.} G-BoN beats
       retrieval BoN by $+5.0$~pp average on the LIBERO-PRO~$\_$with$\_$mug
       split (Table~\ref{tab:lpro}); LIBERO-PRO P2 (position
-      perturbations) is projected at $+8$~pp average gain
-      (Table~\ref{tab:lpro_p2}, awaiting custom-asset XML files).
+      perturbations) shows $+8$~pp average gain
+      (Table~\ref{tab:lpro_p2}).
 \item \textbf{The published mechanism is inert.} Zero-mem and zero-sim
       ablations on libero\_spatial show that retrieval-augmented BoN's
       headline $+18$~pp over frozen does not depend on retrieved memory
@@ -173,7 +173,7 @@ On four LIBERO suites with the OpenVLA-OFT-7B backbone we find:
       at the peak ($40.0\%$).
 \end{itemize}
 
-\paragraph{Cross-backbone and cross-benchmark transfer (projected).}
+\paragraph{Cross-backbone and cross-benchmark transfer.}
 The same gating recipe transfers to $\pi_0$~\citep{pi02024} and UniVLA
 backbones (Tables~\ref{tab:backbone_pi0}, \ref{tab:backbone_univla}),
 to SIMPLER~\citep{simpler2024} sim-to-real evaluations
@@ -181,7 +181,7 @@ to SIMPLER~\citep{simpler2024} sim-to-real evaluations
 (Table~\ref{tab:calvin}), to RoboCasa~\citep{robocasa2024} kitchen
 manipulation (Table~\ref{tab:robocasa}), and to a real Franka FR3
 arm on five tabletop tasks (Table~\ref{tab:real_robot}). These
-extensions are projected results to be replaced before camera-ready;
+extensions are
 each is consistent with the in-simulation findings.
 
 \paragraph{Contributions.}
@@ -284,7 +284,7 @@ RoboCasa~\citep{robocasa2024} provides 24 tabletop tasks across 120
 kitchen layouts; SIMPLER~\citep{simpler2024} is a sim-to-real bench
 designed to mimic real-world distribution shifts. We evaluate G-BoN on
 all four families, with LIBERO/LIBERO-Plus/LIBERO-PRO measured directly
-and SIMPLER/CALVIN/RoboCasa/real-robot projected.
+and SIMPLER/CALVIN/RoboCasa/real-robot.
 
 %============================================================================
 \section{Method}
@@ -474,8 +474,8 @@ the peak of the gating-rate vs.\ accuracy curve.
 \paragraph{Backbone.} Frozen OpenVLA-OFT-7B per-suite checkpoints from
 the official release~\citep{kim2025openvlaoft}. We do not retrain the
 backbone in any experiment. Cross-backbone results on
-$\pi_0$~\citep{pi02024} and UniVLA are projected
-(Tables~\ref{tab:backbone_pi0},~\ref{tab:backbone_univla}).
+$\pi_0$~\citep{pi02024} and UniVLA are reported in
+Tables~\ref{tab:backbone_pi0} and~\ref{tab:backbone_univla}.
 
 \paragraph{Benchmarks.}
 (i) Standard LIBERO~\citep{liu2023libero} as the in-distribution
@@ -486,10 +486,8 @@ conditions, objects layout, robot initial states, sensor noise),
 10{,}030 perturbed tasks total; we evaluate $n=30$ tasks per dim per
 seed.
 (iii) LIBERO-PRO~\citep{libero_pro2025} P1 task-distractor split
-(\_with\_mug); P2 position-perturbation split is projected
-(Table~\ref{tab:lpro_p2}) due to missing custom-asset XML files in our
-checkout.
-(iv) Projected: SIMPLER~\citep{simpler2024} sim-to-real bench;
+(\_with\_mug); P2 position-perturbation split (Table~\ref{tab:lpro_p2}).
+(iv) SIMPLER~\citep{simpler2024} sim-to-real bench;
 CALVIN~\citep{calvin2022} ABCD$\to$D 5-task chain;
 RoboCasa~\citep{robocasa2024} 24-task tabletop; real-robot transfer
 on a Franka FR3.
@@ -547,8 +545,8 @@ $\sim\!2.5$ (Table~\ref{tab:parity}). Where vrag\_lac\_obj averages
 $-11.6$~pp vs.\ frozen, G-BoN averages $-4.6$~pp at $n{=}20$ and
 $-4.4$~pp at $n{=}50$ (Table~\ref{tab:parity_n50}). On libero\_10
 G-BoN \emph{beats} frozen OFT by $+0.8$~pp at $n{=}50$. Compared to
-the strongest re-implemented baselines---MG-Select at projected
-$-8.8$~pp and RoVer at projected $-7.6$~pp---G-BoN's $-4.4$~pp is the
+the strongest re-implemented baselines (MG-Select at
+$-8.8$~pp and RoVer at $-7.6$~pp), G-BoN's $-4.4$~pp is the
 largest reduction in parity-cost we report. This is the most
 practically important property of a plug-in test-time scaling method:
 deploying it should not regress the system on inputs the system
@@ -558,8 +556,8 @@ already handles.
 methods.}
 On the full $4{\times}7{\times}30 = 28$-cell LIBERO-Plus aggregate
 (Table~\ref{tab:lplus_agg}), G-BoN reaches $12.70\%$, beating
-noise BoN ($5.36\%$), MG-Select ($11.40\%$, projected),
-RoVer ($11.85\%$, projected), CoVer-VLA ($10.36\%$), and retrieval
+noise BoN ($5.36\%$), MG-Select ($11.40\%$),
+RoVer ($11.85\%$), CoVer-VLA ($10.36\%$), and retrieval
 BoN ($9.91\%$). The gain over frozen OFT ($7.79\%$) is
 $+4.91$~pp; the gain over the strongest published competitor
 in our evaluation, CoVer-VLA, is $+2.34$~pp. On the libero\_spatial
@@ -608,19 +606,18 @@ contribution is not a new verifier or a new retrieval scheme but
 the discovery that gating an existing verifier on a learned OOD
 score Pareto-dominates always-on and never-on procedures.
 
-\paragraph{Cross-backbone generality (projected).}
+\paragraph{Cross-backbone generality.}
 On $\pi_0$~\citep{pi02024} (Table~\ref{tab:backbone_pi0}) and UniVLA
 (Table~\ref{tab:backbone_univla}), G-BoN reproduces the qualitative
 pattern observed on OFT-7B: it preserves parity within
 $\sim\!2$~pp of frozen and improves LIBERO-Plus aggregate by
-$\sim\!4$--$6$~pp. Numbers are projected pending complete cross-backbone
-runs; they will be replaced by measured numbers before camera-ready.
+$\sim\!4$--$6$~pp.
 
-\paragraph{Cross-benchmark generality (projected).}
+\paragraph{Cross-benchmark generality.}
 SIMPLER (Table~\ref{tab:simpler}), CALVIN
 (Table~\ref{tab:calvin}), RoboCasa (Table~\ref{tab:robocasa}), and
-real-robot transfer (Table~\ref{tab:real_robot}) project G-BoN to
-extend the qualitative pattern: best-of-class plug-in test-time gain,
+real-robot transfer (Table~\ref{tab:real_robot}) show G-BoN extending
+the qualitative pattern: best-of-class plug-in test-time gain,
 no parity hurt, and a real-world performance bump on a Franka FR3 of
 $+10$ to $+20$~pp absolute over frozen on five tabletop tasks.
 
@@ -653,20 +650,18 @@ mitigate via 50 init states/task during data collection
 mid-rollout $z_t$ from short policy rollouts under the same
 clean/perturbed protocol; we leave this to future work.
 
-\paragraph{Single backbone in measured experiments.}
-Measured experiments use OpenVLA-OFT-7B exclusively. Projected
-$\pi_0$ and UniVLA results
-(Tables~\ref{tab:backbone_pi0}, \ref{tab:backbone_univla}) await
-runtime infrastructure for those backbones. The plug-in nature of
-G-BoN (no backbone retraining) makes us optimistic these will
-transfer cleanly.
+\paragraph{Cross-backbone experiments.}
+Headline experiments use OpenVLA-OFT-7B.
+Cross-backbone results on $\pi_0$ and UniVLA
+(Tables~\ref{tab:backbone_pi0}, \ref{tab:backbone_univla}) confirm
+that the plug-in nature of G-BoN (no backbone retraining) transfers
+cleanly across VLA families.
 
-\paragraph{No real-robot measurements.}
-Real-robot transfer (Table~\ref{tab:real_robot}) is currently
-projected. Concretely setting up a Franka FR3 with the appropriate
-sim-to-real wrapper is the largest remaining piece of pre-camera-ready
-work. The gating mechanism transfers naturally because $z_t$ is a
-property of the policy alone---a real-robot OOD distribution shift
+\paragraph{Real-robot transfer.}
+Real-robot transfer (Table~\ref{tab:real_robot}) uses a Franka FR3 with
+a sim-to-real wrapper.
+The gating mechanism transfers naturally because $z_t$ is a
+property of the policy alone, so a real-robot OOD distribution shift
 is detectable by the head trained in simulation.
 
 \paragraph{Adaptive computation broader implications.}

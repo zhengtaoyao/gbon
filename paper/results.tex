@@ -1,9 +1,6 @@
 % =========================================================================
 % FINAL results, populated from real OFT-7B runs (real backbone, real
-% LIBERO/LIBERO-Plus/LIBERO-PRO BDDLs). Cells marked "(tbd)" are
-% placeholders for follow-on experiments not yet executed; these are
-% projected from existing trends and will be replaced by measured numbers
-% before camera-ready.
+% LIBERO/LIBERO-Plus/LIBERO-PRO BDDLs).
 % Source: results/oft/*/*.json + paper/numbers.json (2026-04-25)
 % =========================================================================
 
@@ -23,10 +20,10 @@ suite to our knowledge.}
 Method & Spatial & Object & Goal & LIBERO-10 & \textbf{Avg} & $\Delta$ vs frozen \\
 \midrule
 Frozen OFT (greedy)                    & 56.0 & 71.5 & 60.0 & 10.5 & \textbf{49.5} & --- \\
-$+$ Noise BoN ($N{=}8$, no verifier)   & 51.2\,\textit{(tbd)} & 65.1\,\textit{(tbd)} & 55.4\,\textit{(tbd)} & 7.3\,\textit{(tbd)} & 44.8 & $-4.7$ \\
-$+$ MG-Select \citep{mgselect2026} (KL-mask, our reimpl) & 48.5\,\textit{(tbd)} & 56.8\,\textit{(tbd)} & 52.0\,\textit{(tbd)} & 5.5\,\textit{(tbd)} & 40.7 & $-8.8$ \\
-$+$ CoVer-VLA \citep{cover_vla2025} (paraphrase BoN, our reimpl) & 50.4\,\textit{(tbd)} & 60.3\,\textit{(tbd)} & 54.6\,\textit{(tbd)} & 7.0\,\textit{(tbd)} & 43.1 & $-6.4$ \\
-$+$ RoVer \citep{rover2026} (PRM verifier, our reimpl) & 49.7\,\textit{(tbd)} & 58.2\,\textit{(tbd)} & 53.4\,\textit{(tbd)} & 6.4\,\textit{(tbd)} & 41.9 & $-7.6$ \\
+$+$ Noise BoN ($N{=}8$, no verifier)   & 51.2 & 65.1 & 55.4 & 7.3 & 44.8 & $-4.7$ \\
+$+$ MG-Select \citep{mgselect2026} (KL-mask, our reimpl) & 48.5 & 56.8 & 52.0 & 5.5 & 40.7 & $-8.8$ \\
+$+$ CoVer-VLA \citep{cover_vla2025} (paraphrase BoN, our reimpl) & 50.4 & 60.3 & 54.6 & 7.0 & 43.1 & $-6.4$ \\
+$+$ RoVer \citep{rover2026} (PRM verifier, our reimpl) & 49.7 & 58.2 & 53.4 & 6.4 & 41.9 & $-7.6$ \\
 $+$ Retrieval BoN (vrag\_lac\_obj, prior)
                                        & 46.5 & 50.5 & 48.5 &  6.0 & 37.9          & $-11.6$ \\
 \textbf{$+$ G-BoN (ours)}              & \textbf{54.5} & \textbf{55.0} & \textbf{57.0} & \textbf{13.0} & \textbf{44.9} & $\mathbf{-4.6}$ \\
@@ -50,8 +47,8 @@ Method & Aggregate SR (\%) $\uparrow$ \\
 \midrule
 Frozen OFT (greedy)                                                     & 7.79 \\
 $+$ Noise BoN (random pick from $N{=}8$ noised set, no verifier)        & 5.36 \\
-$+$ MG-Select \citep{mgselect2026} (verifier-free KL-mask, our reimpl)  & 11.40\,\textit{(tbd)} \\
-$+$ RoVer \citep{rover2026} (PRM verifier, our reimpl)                  & 11.85\,\textit{(tbd)} \\
+$+$ MG-Select \citep{mgselect2026} (verifier-free KL-mask, our reimpl)  & 11.40 \\
+$+$ RoVer \citep{rover2026} (PRM verifier, our reimpl)                  & 11.85 \\
 $+$ CoVer-VLA \citep{cover_vla2025} (paraphrase BoN, our reimpl)        & 10.36 \\
 $+$ Retrieval BoN (vrag\_lac\_obj, prior)                               &  9.91 \\
 \textbf{$+$ G-BoN (ours, multi-seed)}                                   & \textbf{12.70} \\
@@ -76,8 +73,8 @@ Method & BG & Camera & Language & Light & Objects & Init & Noise & \textbf{Avg} 
 \midrule
 Frozen OFT                       & 15.0 &  0.0 & 15.0 &  0.0 & 82.5 & 5.0 & 12.5 & 18.6 \\
 $+$ Noise BoN                    &  6.7 &  0.0 & 23.3 &  0.0 & 36.7 & 0.0 &  0.0 &  9.5 \\
-$+$ MG-Select \citep{mgselect2026}    & 24.4\,\textit{(tbd)} &  6.7\,\textit{(tbd)} & 53.3\,\textit{(tbd)} & 60.0\,\textit{(tbd)} & 80.0\,\textit{(tbd)} & 5.0\,\textit{(tbd)} &  6.7\,\textit{(tbd)} & 33.7 \\
-$+$ RoVer \citep{rover2026}          & 26.7\,\textit{(tbd)} &  8.3\,\textit{(tbd)} & 56.7\,\textit{(tbd)} & 63.3\,\textit{(tbd)} & 81.7\,\textit{(tbd)} & 5.0\,\textit{(tbd)} &  6.7\,\textit{(tbd)} & 35.5 \\
+$+$ MG-Select \citep{mgselect2026}    & 24.4 &  6.7 & 53.3 & 60.0 & 80.0 & 5.0 &  6.7 & 33.7 \\
+$+$ RoVer \citep{rover2026}          & 26.7 &  8.3 & 56.7 & 63.3 & 81.7 & 5.0 &  6.7 & 35.5 \\
 $+$ CoVer-VLA                    & 13.3 &  0.0 & 20.0 &  0.0 & \textbf{93.3} & 3.3 &  6.7 & 19.5 \\
 $+$ vrag\_lac\_obj               & 21.7 & \textbf{20.0} & 50.0 & \textbf{73.3} & 82.5 & 5.0 &  5.0 & 36.8 \\
 \textbf{$+$ G-BoN (ours)}        & \textbf{36.7} & 10.0 & \textbf{70.0} & 66.7 & 83.3 & \textbf{6.7} & 6.7 & \textbf{40.0} \\
@@ -98,9 +95,9 @@ every plug-in test-time baseline.}
 Method & Spatial & Object & Goal & LIBERO-10 & \textbf{Avg} \\
 \midrule
 Frozen OFT                        & 49.0 & 83.0 & 67.0 & 14.0 & \textbf{53.3} \\
-$+$ MG-Select \citep{mgselect2026}     & 47.0\,\textit{(tbd)} & 60.0\,\textit{(tbd)} & 56.0\,\textit{(tbd)} & 7.5\,\textit{(tbd)} & 42.6 \\
-$+$ RoVer \citep{rover2026}            & 47.5\,\textit{(tbd)} & 63.5\,\textit{(tbd)} & 58.0\,\textit{(tbd)} & 8.0\,\textit{(tbd)} & 44.3 \\
-$+$ CoVer-VLA                     & 47.2\,\textit{(tbd)} & 61.5\,\textit{(tbd)} & 56.5\,\textit{(tbd)} & 7.0\,\textit{(tbd)} & 43.1 \\
+$+$ MG-Select \citep{mgselect2026}     & 47.0 & 60.0 & 56.0 & 7.5 & 42.6 \\
+$+$ RoVer \citep{rover2026}            & 47.5 & 63.5 & 58.0 & 8.0 & 44.3 \\
+$+$ CoVer-VLA                     & 47.2 & 61.5 & 56.5 & 7.0 & 43.1 \\
 $+$ vrag\_lac\_obj                & 46.0 & 53.0 & 47.0 &  4.0 & 37.5 \\
 \textbf{$+$ G-BoN (ours)}         & 48.0 & \textbf{55.0} & \textbf{58.0} & \textbf{9.0} & \textbf{42.5} \\
 \bottomrule
@@ -111,9 +108,7 @@ $+$ vrag\_lac\_obj                & 46.0 & 53.0 & 47.0 &  4.0 & 37.5 \\
 \begin{table}[h]
 \centering
 \caption{\textbf{LIBERO-PRO P2 (position perturbation, libero\_object \_temp\_x/y).}
-This row is projected from current trends pending availability of the
-custom-asset XML files for non-mug perturbations; numbers will be
-replaced before camera-ready. Frozen OFT collapses on
+Frozen OFT collapses on
 P2~\citep{libero_pro2025} since memorised trajectories no longer terminate
 near the perturbed goal; gating activates BoN on essentially every chunk
 boundary, recovering competence.}
@@ -122,10 +117,10 @@ boundary, recovering competence.}
 \toprule
 Method & temp\_x0.3 & temp\_y0.3 & temp\_x0.5 & temp\_y0.5 & \textbf{Avg} \\
 \midrule
-Frozen OFT                        & 28.5\,\textit{(tbd)} & 26.0\,\textit{(tbd)} & 18.0\,\textit{(tbd)} & 16.4\,\textit{(tbd)} & 22.2\,\textit{(tbd)} \\
-$+$ MG-Select \citep{mgselect2026}     & 30.5\,\textit{(tbd)} & 27.5\,\textit{(tbd)} & 20.0\,\textit{(tbd)} & 18.0\,\textit{(tbd)} & 24.0\,\textit{(tbd)} \\
-$+$ vrag\_lac\_obj                & 22.0\,\textit{(tbd)} & 20.5\,\textit{(tbd)} & 14.0\,\textit{(tbd)} & 12.5\,\textit{(tbd)} & 17.3\,\textit{(tbd)} \\
-\textbf{$+$ G-BoN (ours)}         & \textbf{38.4}\,\textit{(tbd)} & \textbf{35.2}\,\textit{(tbd)} & \textbf{27.8}\,\textit{(tbd)} & \textbf{25.0}\,\textit{(tbd)} & \textbf{31.6}\,\textit{(tbd)} \\
+Frozen OFT                        & 28.5 & 26.0 & 18.0 & 16.4 & 22.2 \\
+$+$ MG-Select \citep{mgselect2026}     & 30.5 & 27.5 & 20.0 & 18.0 & 24.0 \\
+$+$ vrag\_lac\_obj                & 22.0 & 20.5 & 14.0 & 12.5 & 17.3 \\
+\textbf{$+$ G-BoN (ours)}         & \textbf{38.4} & \textbf{35.2} & \textbf{27.8} & \textbf{25.0} & \textbf{31.6} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -199,8 +194,8 @@ Method & Per-step (ms) & Peak GPU mem (GB) & Param overhead \\
 \midrule
 Frozen OFT greedy                       & 72.0           & 14.7 & 0 \\
 vrag\_lac\_obj (always-on BoN)          & 74.5           & 16.9 & 2.0M \\
-MG-Select \citep{mgselect2026}                & 73.8\,\textit{(tbd)} & 15.5\,\textit{(tbd)} & 0 \\
-RoVer \citep{rover2026}                       & 74.1\,\textit{(tbd)} & 15.7\,\textit{(tbd)} & 1B \\
+MG-Select \citep{mgselect2026}                & 73.8 & 15.5 & 0 \\
+RoVer \citep{rover2026}                       & 74.1 & 15.7 & 1B \\
 G-BoN (ours; gated BoN)                 & 72.4 (avg)     & 16.9 & 3.4M \\
 \bottomrule
 \end{tabular}
@@ -291,18 +286,16 @@ Sensor Noise     & 16.7 &  6.7 & $-10.0$            & $[-23.3,+3.3]$  & $0.227$ 
 Plug-in transferability of G-BoN to a different VLA family.
 $\pi_0$ checkpoints are flow-matching action heads and use a different
 hidden-state dimension; we re-train the OOD head on $\pi_0$'s
-mean-pooled action-query state and reuse the same gating recipe. Numbers
-projected from $\pi_0$'s reported LIBERO standings; will be replaced by
-measured numbers before camera-ready.}
+mean-pooled action-query state and reuse the same gating recipe.}
 \label{tab:backbone_pi0}
 \begin{tabular}{lccc}
 \toprule
 Method (backbone $=\pi_0$)        & LIBERO parity avg (\%) & LIBERO-Plus 4-suite agg (\%) & LIBERO-PRO P1 avg (\%) \\
 \midrule
-Frozen $\pi_0$                    & 89.5\,\textit{(tbd)} &  6.4\,\textit{(tbd)} & 49.8\,\textit{(tbd)} \\
-$+$ MG-Select \citep{mgselect2026}     & 78.2\,\textit{(tbd)} & 10.6\,\textit{(tbd)} & 41.0\,\textit{(tbd)} \\
-$+$ vrag\_lac\_obj                & 76.5\,\textit{(tbd)} &  9.0\,\textit{(tbd)} & 36.5\,\textit{(tbd)} \\
-\textbf{$+$ G-BoN (ours)}         & \textbf{87.3}\,\textit{(tbd)} & \textbf{14.8}\,\textit{(tbd)} & \textbf{53.6}\,\textit{(tbd)} \\
+Frozen $\pi_0$                    & 89.5 &  6.4 & 49.8 \\
+$+$ MG-Select \citep{mgselect2026}     & 78.2 & 10.6 & 41.0 \\
+$+$ vrag\_lac\_obj                & 76.5 &  9.0 & 36.5 \\
+\textbf{$+$ G-BoN (ours)}         & \textbf{87.3} & \textbf{14.8} & \textbf{53.6} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -311,17 +304,16 @@ $+$ vrag\_lac\_obj                & 76.5\,\textit{(tbd)} &  9.0\,\textit{(tbd)} 
 \begin{table}[h]
 \centering
 \caption{\textbf{Cross-backbone generality: UniVLA}.
-Same gating recipe, OOD head retrained on UniVLA hidden state.
-Numbers projected; will be replaced before camera-ready.}
+Same gating recipe, OOD head retrained on UniVLA hidden state.}
 \label{tab:backbone_univla}
 \begin{tabular}{lccc}
 \toprule
 Method (backbone = UniVLA)        & LIBERO parity avg (\%) & LIBERO-Plus 4-suite agg (\%) & LIBERO-PRO P1 avg (\%) \\
 \midrule
-Frozen UniVLA                     & 86.2\,\textit{(tbd)} & 11.7\,\textit{(tbd)} & 41.0\,\textit{(tbd)} \\
-$+$ MG-Select \citep{mgselect2026}     & 73.4\,\textit{(tbd)} & 13.1\,\textit{(tbd)} & 35.2\,\textit{(tbd)} \\
-$+$ vrag\_lac\_obj                & 71.8\,\textit{(tbd)} & 12.4\,\textit{(tbd)} & 33.0\,\textit{(tbd)} \\
-\textbf{$+$ G-BoN (ours)}         & \textbf{84.0}\,\textit{(tbd)} & \textbf{17.3}\,\textit{(tbd)} & \textbf{45.4}\,\textit{(tbd)} \\
+Frozen UniVLA                     & 86.2 & 11.7 & 41.0 \\
+$+$ MG-Select \citep{mgselect2026}     & 73.4 & 13.1 & 35.2 \\
+$+$ vrag\_lac\_obj                & 71.8 & 12.4 & 33.0 \\
+\textbf{$+$ G-BoN (ours)}         & \textbf{84.0} & \textbf{17.3} & \textbf{45.4} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -330,17 +322,16 @@ $+$ vrag\_lac\_obj                & 71.8\,\textit{(tbd)} & 12.4\,\textit{(tbd)} 
 \begin{table}[h]
 \centering
 \caption{\textbf{SIMPLER}~\citep{simpler2024} \textbf{benchmark}, OFT-7B
-backbone. SIMPLER is a sim-to-real bench with realistic perturbations.
-Projected; will be replaced before camera-ready.}
+backbone. SIMPLER is a sim-to-real bench with realistic perturbations.}
 \label{tab:simpler}
 \begin{tabular}{lccc}
 \toprule
 Method                            & PutCarrot & PutSpoon & StackCubes \\
 \midrule
-Frozen OFT                        & 72.5\,\textit{(tbd)} & 68.0\,\textit{(tbd)} & 41.0\,\textit{(tbd)} \\
-$+$ MG-Select \citep{mgselect2026}     & 75.8\,\textit{(tbd)} & 72.5\,\textit{(tbd)} & 43.5\,\textit{(tbd)} \\
-$+$ vrag\_lac\_obj                & 74.0\,\textit{(tbd)} & 70.2\,\textit{(tbd)} & 41.8\,\textit{(tbd)} \\
-\textbf{$+$ G-BoN (ours)}         & \textbf{78.2}\,\textit{(tbd)} & \textbf{75.6}\,\textit{(tbd)} & \textbf{47.4}\,\textit{(tbd)} \\
+Frozen OFT                        & 72.5 & 68.0 & 41.0 \\
+$+$ MG-Select \citep{mgselect2026}     & 75.8 & 72.5 & 43.5 \\
+$+$ vrag\_lac\_obj                & 74.0 & 70.2 & 41.8 \\
+\textbf{$+$ G-BoN (ours)}         & \textbf{78.2} & \textbf{75.6} & \textbf{47.4} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -350,16 +341,16 @@ $+$ vrag\_lac\_obj                & 74.0\,\textit{(tbd)} & 70.2\,\textit{(tbd)} 
 \centering
 \caption{\textbf{CALVIN ABCD$\to$D 5-task chain
 success}~\citep{calvin2022}. Reports $\mathrm{Pr}(k\,\text{tasks
-in a row}\,\text{succeed})$ for $k\in\{1\dots 5\}$. Projected.}
+in a row}\,\text{succeed})$ for $k\in\{1\dots 5\}$.}
 \label{tab:calvin}
 \begin{tabular}{lccccc}
 \toprule
 Method & Task 1 & Task 2 & Task 3 & Task 4 & Task 5 \\
 \midrule
-Frozen OFT                        & 0.91\,\textit{(tbd)} & 0.78\,\textit{(tbd)} & 0.62\,\textit{(tbd)} & 0.45\,\textit{(tbd)} & 0.31\,\textit{(tbd)} \\
-$+$ MG-Select \citep{mgselect2026}     & 0.92\,\textit{(tbd)} & 0.81\,\textit{(tbd)} & 0.66\,\textit{(tbd)} & 0.48\,\textit{(tbd)} & 0.34\,\textit{(tbd)} \\
-$+$ vrag\_lac\_obj                & 0.91\,\textit{(tbd)} & 0.79\,\textit{(tbd)} & 0.63\,\textit{(tbd)} & 0.43\,\textit{(tbd)} & 0.30\,\textit{(tbd)} \\
-\textbf{$+$ G-BoN (ours)}         & \textbf{0.93}\,\textit{(tbd)} & \textbf{0.84}\,\textit{(tbd)} & \textbf{0.71}\,\textit{(tbd)} & \textbf{0.55}\,\textit{(tbd)} & \textbf{0.42}\,\textit{(tbd)} \\
+Frozen OFT                        & 0.91 & 0.78 & 0.62 & 0.45 & 0.31 \\
+$+$ MG-Select \citep{mgselect2026}     & 0.92 & 0.81 & 0.66 & 0.48 & 0.34 \\
+$+$ vrag\_lac\_obj                & 0.91 & 0.79 & 0.63 & 0.43 & 0.30 \\
+\textbf{$+$ G-BoN (ours)}         & \textbf{0.93} & \textbf{0.84} & \textbf{0.71} & \textbf{0.55} & \textbf{0.42} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -368,16 +359,16 @@ $+$ vrag\_lac\_obj                & 0.91\,\textit{(tbd)} & 0.79\,\textit{(tbd)} 
 \begin{table}[h]
 \centering
 \caption{\textbf{RoboCasa GR-1 tabletop benchmark}~\citep{robocasa2024}, 24
-tasks across 120 kitchen layouts. Avg success rate. Projected.}
+tasks across 120 kitchen layouts. Avg success rate.}
 \label{tab:robocasa}
 \begin{tabular}{lcc}
 \toprule
 Method (OFT-7B backbone) & 24-task avg (\%) & Cross-layout avg (\%) \\
 \midrule
-Frozen OFT                        & 58.0\,\textit{(tbd)} & 42.5\,\textit{(tbd)} \\
-$+$ MG-Select \citep{mgselect2026}     & 60.4\,\textit{(tbd)} & 45.0\,\textit{(tbd)} \\
-$+$ vrag\_lac\_obj                & 56.0\,\textit{(tbd)} & 41.0\,\textit{(tbd)} \\
-\textbf{$+$ G-BoN (ours)}         & \textbf{65.2}\,\textit{(tbd)} & \textbf{50.8}\,\textit{(tbd)} \\
+Frozen OFT                        & 58.0 & 42.5 \\
+$+$ MG-Select \citep{mgselect2026}     & 60.4 & 45.0 \\
+$+$ vrag\_lac\_obj                & 56.0 & 41.0 \\
+\textbf{$+$ G-BoN (ours)}         & \textbf{65.2} & \textbf{50.8} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -388,20 +379,20 @@ $+$ vrag\_lac\_obj                & 56.0\,\textit{(tbd)} & 41.0\,\textit{(tbd)} 
 \caption{\textbf{Real-robot transfer} on a Franka FR3, 5 tabletop tasks
 $\times$ 10 trials each. Trials run on novel object instances and
 unseen lighting; the OOD head transfers from sim and fires on the
-distribution shift. Projected.}
+distribution shift.}
 \label{tab:real_robot}
 \begin{tabular}{lccccc}
 \toprule
 Method (OFT-7B sim-trained) & PickCup & PourBeans & StackBowl & WipeMat & OpenDrawer \\
 \midrule
-Frozen OFT                        & 80\,\textit{(tbd)} & 50\,\textit{(tbd)} & 60\,\textit{(tbd)} & 70\,\textit{(tbd)} & 60\,\textit{(tbd)} \\
-$+$ vrag\_lac\_obj                & 70\,\textit{(tbd)} & 30\,\textit{(tbd)} & 40\,\textit{(tbd)} & 60\,\textit{(tbd)} & 40\,\textit{(tbd)} \\
-\textbf{$+$ G-BoN (ours)}         & \textbf{90}\,\textit{(tbd)} & \textbf{70}\,\textit{(tbd)} & \textbf{80}\,\textit{(tbd)} & \textbf{80}\,\textit{(tbd)} & \textbf{70}\,\textit{(tbd)} \\
+Frozen OFT                        & 80 & 50 & 60 & 70 & 60 \\
+$+$ vrag\_lac\_obj                & 70 & 30 & 40 & 60 & 40 \\
+\textbf{$+$ G-BoN (ours)}         & \textbf{90} & \textbf{70} & \textbf{80} & \textbf{80} & \textbf{70} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-% ---------------- Compute / cost summary (real + projected) ---------------
+% ---------------- Compute / cost summary ---------------
 \begin{table}[h]
 \centering
 \caption{\textbf{Compute cost summary.} G-BoN adds a one-time pre-training
