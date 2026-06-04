@@ -1,0 +1,795 @@
+generate the pipeline framework for the attached top ai conference paper in nips. You should search the web first for the paper that is similar to this project, then consider them as good reference. it should be an image that summarizes the structure and method of the work that meets the detailness and abstractness for a nips conference paper. It should not have the conclusion and limitation and preliminary part. It should be very simple, but should be illustrative. it should be one single slides/pdf and take about one third of the whole page.
+
+Below is the LaTeX source of the paper (truncated if very long):
+
+----- BEGIN PAPER TEX -----
+\documentclass{article}
+
+\usepackage[preprint]{neurips_2024}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{enumitem}
+
+\title{G-BoN: Out-of-Distribution-Gated Best-of-$N$\\
+       for Robust, Plug-In Test-Time Verification\\
+       of Vision-Language-Action Policies}
+
+\author{
+  Anonymous Authors \\
+  Anonymous Affiliation
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+State-of-the-art Vision-Language-Action (VLA) policies such as
+OpenVLA-OFT-7B~\citep{kim2025openvlaoft} achieve $\geq 95\%$ success
+on standard LIBERO~\citep{liu2023libero} but collapse to
+$<30\%$ under modest perturbations on
+LIBERO-Plus~\citep{libero_plus2025} and to near $0\%$ on adversarial
+LIBERO-PRO~\citep{libero_pro2025}. A surge of test-time scaling
+proposals has emerged to recover this gap: noise best-of-$N$,
+paraphrase self-consistency~\citep{cover_vla2025},
+masked-condition KL verifiers~\citep{mgselect2026}, latent recurrent
+reasoning~\citep{rdvla2025}, and process-reward
+verifiers~\citep{rover2026}. \emph{Every} method we evaluate trades
+in-distribution performance for out-of-distribution gain: across
+five plug-in test-time-BoN baselines, in-distribution success drops
+$3$--$21$~pp on standard LIBERO. We argue that the missing
+ingredient is \emph{when} to verify, not how. We introduce
+\textbf{G-BoN} (Gated Best-of-$N$), a plug-in test-time procedure
+that learns to invoke best-of-$N$ verification only when the policy's
+own hidden state suggests the observation is out-of-distribution.
+A small ($1.4$M parameter) MLP, trained on first-frame mean
+action-query hidden states from clean (vanilla LIBERO) and
+perturbed (LIBERO-Plus) tasks, scores OOD probability; only above
+a Youden-J-calibrated threshold $\tau^\star$ does the system
+sample $N$ noised candidate action chunks and pick the best under
+a frozen-feature cross-attention scorer. On four LIBERO suites
+G-BoN preserves frozen-policy parity within $-4.4$~pp on average
+(vs.\ $-11.6$~pp for retrieval-augmented BoN, the strongest
+non-gated baseline) while gaining $+5.0$ to $+15.0$~pp~per suite over
+the same baseline on LIBERO-PRO P1 perturbations. On the LIBERO-Plus
+4-suite aggregate G-BoN reaches $12.70\%$, the best of all five
+plug-in test-time methods evaluated. We further show via
+mechanism-separating ablations (zero-mem, zero-sim) that the
+retrieval channel in prior work is essentially inert: the actual
+test-time gain comes from BoN with a frozen-feature scorer, and
+gating it on a learned OOD signal lets us keep the gain without
+paying the in-distribution cost. Two cells reach $p<10^{-3}$ in
+per-task paired bootstrap; a $\tau$-sweep ablation traces the gating
+trade-off and confirms the auto-calibrated $\tau^\star$ sits at the
+peak. We release code, OOD heads, verifier checkpoints, and per-cell
+evaluation JSONs.
+\end{abstract}
+
+%============================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Vision-Language-Action (VLA) policies~\citep{kim2024openvla,kim2025openvlaoft,
+pi02024} are the dominant paradigm for table-top manipulation, achieving
+$\geq 95\%$ success on the standard LIBERO~\citep{liu2023libero} benchmark
+across spatial, object, goal-conditioned, and long-horizon (LIBERO-10) task
+suites. This headline number, however, hides a brittleness gap that has
+become the central concern of the field. Two recent benchmarks make the
+gap visible. LIBERO-Plus~\citep{libero_plus2025} introduces
+$\sim$10{,}030 perturbed tasks across seven dimensions
+(background textures, camera viewpoints, language instructions, light
+conditions, object layouts, robot initial states, sensor noise) and
+documents a drop from $\sim$95\% to $<$30\% averaged across SOTA models;
+LIBERO-PRO~\citep{libero_pro2025} introduces adversarial perturbations
+along which every published VLA collapses to exactly $0\%$ on its P1
+(task-distractor) split.
+
+\paragraph{The plug-in test-time response.} A wave of methods in 2025--2026
+has proposed plug-in test-time scaling: leave the backbone frozen, use
+extra inference compute to recover robustness. Concretely:
+MG-Select~\citep{mgselect2026} samples $N$ candidates and picks the one
+whose action-token distribution is closest in KL to a masked-condition
+reference distribution (verifier-free).
+Recurrent-Depth VLA (RD-VLA)~\citep{rdvla2025} iteratively refines latent
+state via a weight-tied recurrent action head, scaling success
+log-linearly in iteration count.
+CoVer-VLA~\citep{cover_vla2025} samples $N$ language paraphrases of the
+instruction and selects by self-consistency or a contrastive verifier.
+RoVer~\citep{rover2026} trains a $1$B-parameter Process Reward Model and
+expands candidate actions along PRM-predicted directions.
+TACO~\citep{taco2026} uses a pseudo-count estimator over action chunks.
+Bidirectional Decoding~\citep{bid2024} couples action chunks via
+backward-coherence and forward-contrast objectives.
+
+\paragraph{The shared blind spot.}
+All of these methods \emph{always run}. They commit the verification
+machinery to every chunk boundary. But in-distribution, the frozen
+backbone is already very good, the very reason it scores $97\%$ on
+standard LIBERO. Forcing best-of-$N$ on these clean inputs introduces
+noise that shifts the candidate distribution away from the policy's
+already-good greedy output. Empirically, every method we evaluate hurts
+standard-LIBERO parity by $3$--$21$~pp (Table~\ref{tab:parity}). The
+field has implicitly accepted this cost as the price of robustness.
+
+\paragraph{Our hypothesis and method.}
+The cost is unnecessary. The verifier is the right tool, but it should
+fire \emph{only} when help is needed. We propose
+\textbf{G-BoN}, a plug-in test-time procedure that gates best-of-$N$
+verification on a learned out-of-distribution detector. The detector is
+a small two-layer MLP $g_\phi$ on the policy's mean action-query hidden
+state $z_t \in \mathbb{R}^{4096}$; it adds $1.4$M parameters and one
+GEMM per chunk boundary ($<0.4$~ms on an RTX~PRO~6000). We train $g_\phi$
+with binary cross-entropy on a balanced set of in-distribution
+(vanilla-LIBERO env-reset+warmup) and out-of-distribution (LIBERO-Plus
+env-reset+warmup) first-frame $z_t$ samples; the operating threshold
+$\tau^\star$ is chosen by Youden's J~\citep{youden1950} on a held-out
+validation split. At inference, when the OOD probability
+$\sigma(g_\phi(z_t)) \leq \tau^\star$, we trust the policy and execute
+its greedy chunk; otherwise we sample $N$ noised candidate chunks and
+pick the argmax of a frozen-feature cross-attention scorer
+(Algorithm~\ref{alg:gbon}, Sec.~\ref{sec:method}). G-BoN is plug-in:
+the backbone is never retrained; no LIBERO-Plus or LIBERO-PRO data
+flows into the policy weights.
+
+\paragraph{Empirical findings.}
+On four LIBERO suites with the OpenVLA-OFT-7B backbone we find:
+\begin{itemize}[topsep=0pt,itemsep=2pt,leftmargin=*]
+\item \textbf{Best-in-class parity preservation.} G-BoN keeps
+      standard-LIBERO success within $-4.4$~pp of frozen OFT
+      (Table~\ref{tab:parity}, \ref{tab:parity_n50}); on libero\_10
+      G-BoN actually \emph{beats} frozen by $+0.8$~pp. The strongest
+      always-on baseline (vrag\_lac\_obj) loses $-11.6$~pp.
+\item \textbf{Best-in-class robustness on LIBERO-Plus.} G-BoN reaches
+      $12.70\%$ on the 4-suite aggregate (Table~\ref{tab:lplus_agg}),
+      beating all five plug-in test-time baselines: noise BoN ($5.36\%$),
+      MG-Select ($11.40\%$), RoVer ($11.85\%$),
+      CoVer-VLA ($10.36\%$), and retrieval BoN ($9.91\%$). On
+      libero\_spatial G-BoN wins 5 of 7 perturbation cells with
+      Language Instr $+50.0$~pp at $p < 10^{-3}$ and Light Cond
+      $+66.7$~pp at $p < 10^{-3}$.
+\item \textbf{LIBERO-PRO P1 task-distractor.} G-BoN beats
+      retrieval BoN by $+5.0$~pp average on the LIBERO-PRO~$\_$with$\_$mug
+      split (Table~\ref{tab:lpro}); LIBERO-PRO P2 (position
+      perturbations) shows $+8$~pp average gain
+      (Table~\ref{tab:lpro_p2}).
+\item \textbf{The published mechanism is inert.} Zero-mem and zero-sim
+      ablations on libero\_spatial show that retrieval-augmented BoN's
+      headline $+18$~pp over frozen does not depend on retrieved memory
+      content or even similarity scores (Table~\ref{tab:abl_mech}).
+      The active ingredient is BoN with a frozen-feature scorer; gating
+      it is what allows in-distribution preservation.
+\item \textbf{Gating is the contribution.} A $\tau$-sweep
+      (Table~\ref{tab:abl_tau}) traces the trade-off:
+      $\tau{=}0$ (always on) gives $35.7\%$, $\tau{=}1$ (never on)
+      gives $18.6\%$, the auto-calibrated $\tau^\star{=}0.126$ sits
+      at the peak ($40.0\%$).
+\end{itemize}
+
+\paragraph{Cross-backbone and cross-benchmark transfer.}
+The same gating recipe transfers to $\pi_0$~\citep{pi02024} and UniVLA
+backbones (Tables~\ref{tab:backbone_pi0}, \ref{tab:backbone_univla}),
+to SIMPLER~\citep{simpler2024} sim-to-real evaluations
+(Table~\ref{tab:simpler}), to CALVIN ABCD$\to$D long-horizon chains
+(Table~\ref{tab:calvin}), to RoboCasa~\citep{robocasa2024} kitchen
+manipulation (Table~\ref{tab:robocasa}), and to a real Franka FR3
+arm on five tabletop tasks (Table~\ref{tab:real_robot}). These
+extensions are
+each is consistent with the in-simulation findings.
+
+\paragraph{Contributions.}
+Concretely, this paper:
+(1) introduces \textbf{G-BoN}, the first VLA test-time scaling method
+that gates best-of-$N$ on a learned OOD score, achieving the lowest
+in-distribution cost ($-4.4$~pp) and the highest aggregate LIBERO-Plus
+robustness ($12.70\%$) among five plug-in test-time baselines;
+(2) provides \textbf{mechanism-separating ablations} that show
+retrieval is empirically inert in prior work, reframing what test-time
+scaling for VLAs is actually doing;
+(3) gives a \textbf{Youden-J calibrated} OOD threshold at no
+test-time tuning cost, with a $\tau$-sweep that empirically validates
+the gating axis as the active contribution;
+(4) releases code, OOD-head checkpoints, verifier checkpoints, and
+per-cell evaluation JSONs for reproducibility.
+
+%============================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Vision-Language-Action models.}
+VLAs unify pretrained vision-language models with action heads to map
+$(o_t, \ell)$ to action chunks $a_{t:t+K}$. Notable open backbones
+include OpenVLA~\citep{kim2024openvla}, OpenVLA-OFT
+(optimized fine-tuning recipe with parallel decoding and action
+chunking)~\citep{kim2025openvlaoft}, $\pi_0$~\citep{pi02024} (a
+flow-matching action head), and discrete-diffusion variants surveyed
+in~\citep{discrete_diffusion_vla2026}. Standard imitation backbones
+such as ACT~\citep{zhao2023ACT} and Diffusion
+Policy~\citep{chi2023diffusion} laid the groundwork for action chunking
+and sequence-modelling action distributions; LightDP~\citep{lightdp2025}
+and StarVLA~\citep{starvla2026} address latency and codebase
+modularisation respectively. In this paper we treat the backbone as a
+black-box; G-BoN attaches without retraining.
+
+\paragraph{Test-time scaling for VLAs.}
+The closest line of work is plug-in test-time
+verifier/best-of-$N$:
+MG-Select~\citep{mgselect2026} draws $N$ samples and scores by
+KL-divergence against a masked-condition reference distribution
+(verifier-free), winning ICLR 2026.
+RD-VLA~\citep{rdvla2025} iteratively refines latent state via a
+weight-tied recurrent action head; with adaptive stopping it reaches
+$92.5\%$ on standard LIBERO with an average $\sim 8$ iterations.
+CoVer-VLA~\citep{cover_vla2025} samples $N$ rephrased instructions and
+trains a contrastive verifier; reports $+22\%$ in-distribution and
+$+13\%$ out-of-distribution on SIMPLER, and $+45\%$ in real-world
+experiments.
+RoVer~\citep{rover2026} trains a Process Reward Model and expands
+candidate actions along PRM-predicted directions.
+TACO~\citep{taco2026} uses a lightweight pseudo-count estimator as a
+verifier of action chunks.
+Bidirectional Decoding (BID)~\citep{bid2024} couples action chunks via
+forward-contrast and backward-coherence objectives, reporting gains on
+seven simulation benchmarks.
+None of these methods condition execution of the test-time procedure
+on a learned OOD signal; G-BoN does.
+
+\paragraph{Adaptive computation for neural networks.}
+PonderTTT~\citep{pondertt} gates test-time-training updates in code
+generation by reconstruction-loss thresholding; the gate is
+unsupervised and triggers TTT weight updates rather than BoN. The
+broader literature on adaptive computation includes early-exit networks,
+mixture-of-experts routing, and dynamic depth. For vision-language
+models specifically, TDA~\citep{tda2024} maintains a key-value cache and
+adapts at test time without backprop. Our gate differs in that it
+(i) is supervised on a binary in-vs-out-of-distribution objective from
+the same env-reset protocol;
+(ii) triggers BoN verification rather than weight updates;
+(iii) uses Youden's J~\citep{youden1950} for calibration.
+
+\paragraph{Out-of-distribution detection.}
+A long literature exists on OOD detection in vision and reinforcement
+learning. Frozen-feature classifiers~\citep{robust_unsupervised_ood2024}
+are a well-established design pattern. We find that for VLA hidden
+states, a small two-layer MLP on the mean action-query hidden state
+already gives val-AUC $\geq 0.985$ when training data is collected via
+the same env-reset+warmup protocol for both classes, avoiding the
+``first-frame vs.\ mid-trajectory'' shortcut we observed in a
+naive baseline.
+
+\paragraph{Verification and self-consistency in language models.}
+Best-of-$N$ verification has a long lineage in LLMs: training
+verifiers for math~\citep{cobbe2021verifier}, self-consistency over
+sampled chains~\citep{wei2022consistency}, and retrieval-augmented
+generation~\citep{lewis2020rag}. Our work applies the BoN-verifier
+pattern to VLA action chunks but adds a gating axis that, to our
+knowledge, has not been explored in either the LLM or VLA test-time
+scaling literature.
+
+\paragraph{Robustness benchmarks for VLAs.}
+LIBERO-Plus~\citep{libero_plus2025} provides $\sim 10{,}030$
+perturbed tasks across seven controlled dimensions and
+21~sub-dimensions; LIBERO-PRO~\citep{libero_pro2025} provides
+P1 (task perturbation) and P2 (position perturbation) splits with
+custom assets. CALVIN~\citep{calvin2022} evaluates language-conditioned
+long-horizon chains of up to 5 instructions.
+RoboCasa~\citep{robocasa2024} provides 24 tabletop tasks across 120
+kitchen layouts; SIMPLER~\citep{simpler2024} is a sim-to-real bench
+designed to mimic real-world distribution shifts. We evaluate G-BoN on
+all four families, with LIBERO/LIBERO-Plus/LIBERO-PRO measured directly
+and SIMPLER/CALVIN/RoboCasa/real-robot.
+
+%============================================================================
+\section{Method}
+\label{sec:method}
+
+\subsection{Setup and notation}
+\label{sec:method:notation}
+Let $\pi_\theta$ be a frozen VLA mapping observation $o_t$ and language
+instruction $\ell$ to a distribution over action chunks
+$a_{t:t+K}\in\mathbb{R}^{K\times D_a}$ of length $K$. We use OpenVLA-OFT-7B
+with $K{=}8$ and $D_a{=}7$ unless stated otherwise. For each forward
+pass, $\pi_\theta$ produces both the greedy chunk
+$\hat a_t \;\triangleq\; \arg\max_{a} p_\theta(a\,|\,o_t,\ell)$ and a
+mean action-query hidden state
+\[
+  z_t \;\triangleq\; \tfrac{1}{|Q|}\!\sum_{i\in Q}\,h^{(L)}_i(o_t,\ell)
+  \;\in\; \mathbb{R}^{D},
+\]
+where $h^{(L)}_i$ is the policy LLM's final-layer hidden state at
+action-query token position $i$ in the action-query token set
+$Q$, and $D{=}4096$. We deliberately mean-pool across $|Q|{=}56$
+tokens to produce a stable, single-vector summary.
+
+\subsection{The OOD head}
+\label{sec:method:ood_head}
+
+\paragraph{Architecture.} The OOD head $g_\phi:\mathbb{R}^{D}\to\mathbb{R}$
+is a 2-layer MLP with LayerNorm, GELU, and dropout (hidden width
+$d_h{=}256$):
+\begin{equation}
+  g_\phi(z)
+  \;=\;
+  W_3\,\mathrm{GELU}\!\bigl(\,W_2\,\mathrm{GELU}\!\bigl(\,W_1\,\mathrm{LN}(z) + b_1\,\bigr) + b_2\,\bigr) + b_3,
+  \label{eq:ood_head}
+\end{equation}
+with $W_1\in\mathbb{R}^{d_h\times D}$, $W_2\in\mathbb{R}^{d_h\times d_h}$,
+$W_3\in\mathbb{R}^{1\times d_h}$. Total parameter count is
+$D\!\cdot\! d_h + d_h^2 + d_h \approx 1.4\text{M}$. The calibrated
+OOD probability is $s(z)\!=\!\sigma(g_\phi(z))$.
+
+\paragraph{Training data.} Per LIBERO suite, we collect a balanced set
+$\mathcal{D}_{\mathrm{train}} = \mathcal{D}_{\mathrm{ID}}\cup\mathcal{D}_{\mathrm{OOD}}$ of
+$\sim 800$ first-frame $z_t$ samples. The in-distribution set
+$\mathcal{D}_{\mathrm{ID}}$ is collected by resetting a vanilla-LIBERO
+environment for each of the suite's 10 tasks, applying the policy's
+five-step warmup with the no-op action, and recording $z_t$ at the
+first post-warmup frame; we sample up to 50 distinct init states per
+task. The out-of-distribution set $\mathcal{D}_{\mathrm{OOD}}$ is collected
+identically but using LIBERO-Plus perturbed BDDL files, balanced
+across all 7 perturbation categories. Critically, both classes are
+collected via the \emph{same} env-reset+warmup protocol; an earlier
+naive design that paired clean mid-trajectory $z_t$ from training
+demonstrations with OOD first-frame $z_t$ produced a head that
+discriminated on ``first-frame vs.\ mid-trajectory'' rather than on
+perturbation features, with degraded test-time gating behaviour.
+
+\paragraph{Loss and threshold.} We optimise BCE with logits:
+\begin{equation}
+  \mathcal{L}_\phi
+  \;=\;
+  - \,\mathbb{E}_{(z, y)\sim\mathcal{D}_{\mathrm{train}}}
+  \Bigl[\,
+    y\log s(z) \,+\, (1-y)\log\bigl(1-s(z)\bigr)
+  \Bigr],
+  \label{eq:bce}
+\end{equation}
+trained for 20 epochs at learning rate $3\!\times\!10^{-4}$ on a single
+RTX~PRO~6000 ($\sim\!1$~min/suite). The operating threshold $\tau^\star$
+is chosen to maximise Youden's J~\citep{youden1950} on a 20\% held-out
+split:
+\begin{equation}
+  \tau^\star
+  \;=\;
+  \arg\max_{\tau \in (0,1)}
+  \;
+  \mathrm{TPR}_{\mathcal{V}}(\tau) - \mathrm{FPR}_{\mathcal{V}}(\tau),
+  \label{eq:youden}
+\end{equation}
+where $\mathcal{V}$ is the validation set, $\mathrm{TPR}(\tau)$ is the true positive
+rate at threshold $\tau$ (fraction of OOD validation samples with
+$s(z) > \tau$), and $\mathrm{FPR}(\tau)$ is the false positive rate
+(fraction of clean validation samples with $s(z) > \tau$). Across
+the four LIBERO suites we obtain val-AUC $\in [0.985, 1.000]$ and
+$\tau^\star \in \{0.030, 0.126, 0.679, 0.897\}$, illustrating that
+the head's score distribution differs across suites and Youden's J
+finds a per-suite calibration without manual tuning.
+
+\subsection{Frozen-feature scorer (verifier)}
+\label{sec:method:verifier}
+
+When the gate fires, we score $N$ candidate action chunks and pick
+the argmax. The scorer $V$ is a 2-layer cross-attention transformer
+trained for 8{,}000 steps per suite ($\sim$45~s on a single RTX~6000):
+\begin{equation}
+  V\bigl(z_t, a^{(i)}, M_{\mathrm{topk}}(z_t, a^{(i)})\bigr)
+  \;\to\; \mathbb{R},
+  \label{eq:verifier}
+\end{equation}
+where $a^{(i)}\in\mathbb{R}^{K\times D_a}$ is candidate $i$ and
+$M_{\mathrm{topk}}(z_t, a^{(i)})$ is the top-$k{=}8$ retrieved memory
+entries from a memory bank $\mathcal{M}$ of training-demo
+$\{(z_m, a_m)\}_{m=1}^{|\mathcal{M}|}$ pairs. The retrieval key is the
+candidate-conditioned object-centric key
+$k_{\mathrm{obj}}(z_t, a^{(i)})$ from~\citep[App.\,B]{cover_vla2025} for
+the strongest-baseline ablation; alternative keys (obs-only, action-
+conditioned) are also studied (Table~\ref{tab:abl_mech}). Training uses
+listwise softmax over $N$ candidates plus a margin-rank triplet
+$\mathrm{score}(\mathrm{GT}) > \mathrm{score}(\mathrm{policy}) > \mathrm{score}(\mathrm{noise})$, with
+margin $\eta = 0.5$. The verifier has $\sim 2.0$M parameters.
+
+\paragraph{Mechanism analysis (zero-mem, zero-sim).}
+Define two ablation operators on the verifier inputs: $\mathrm{Z_{mem}}$ which
+sets the retrieved-memory \emph{content} $(\,z_m,\,a_m\,)$ to zero
+while keeping retrieval similarity scores intact, and
+$\mathrm{Z_{sim}}$ which additionally zeros out the retrieval similarity scores
+themselves. Empirically (Table~\ref{tab:abl_mech}), both ablations
+preserve the headline gain on libero\_spatial within $\pm 1.5$~pp,
+implying that the verifier's apparent retrieval channel carries
+essentially no information at this benchmark scale. We therefore
+treat $V$ as a \emph{frozen-feature scorer over candidate chunks
+given $z_t$}; retrieval enters only as an implementation detail of
+how candidate keys are constructed.
+
+\subsection{Test-time inference}
+\label{sec:method:inference}
+
+We sample $N$ candidates by adding isotropic Gaussian noise of scale
+$\sigma$ to the greedy chunk:
+\begin{equation}
+  a^{(i)} \;=\;
+  \begin{cases}
+  \hat a_t & i = 1, \\
+  \hat a_t + \sigma\,\epsilon^{(i)},\;
+  \epsilon^{(i)}\sim\mathcal{N}(0,\,I_{K\!\times\!D_a}) & i \in \{2,\dots,N\}.
+  \end{cases}
+  \label{eq:cands}
+\end{equation}
+Algorithm~\ref{alg:gbon} formalises G-BoN test-time inference.
+
+\begin{algorithm}[t]
+\caption{G-BoN test-time inference}
+\label{alg:gbon}
+\begin{algorithmic}[1]
+\Require frozen VLA $\pi_\theta$, OOD head $g_\phi$, scorer $V$, memory $\mathcal{M}$, threshold $\tau^\star$, BoN budget $N$, noise scale $\sigma$
+\State $\hat a_t,\;z_t \gets \pi_\theta(o_t, \ell)$ \Comment{one greedy forward}
+\State $s \gets \sigma(g_\phi(z_t))$ \Comment{OOD probability}
+\If{$s \leq \tau^\star$}
+  \State \Return $\hat a_t$ \Comment{trust the policy}
+\EndIf
+\State Sample $\{a^{(i)}\}_{i=1}^N$ via Eq.~\eqref{eq:cands}
+\State $i^\star \gets \arg\max_{i\in[N]}\, V\bigl(z_t,\,a^{(i)},\,M_{\mathrm{topk}}(z_t, a^{(i)})\bigr)$
+\State \Return $a^{(i^\star)}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Cost.} The OOD head adds one matmul of cost $\mathcal{O}(D\!\cdot\!d_h)
+\!=\!1.05$M flops, $\sim\!0.4$~ms per chunk on an RTX~PRO~6000 in bf16.
+$N$-candidate scoring is $\mathcal{O}(N\!\cdot\!d_k\!\cdot\!K\!\cdot\!D_a)$ for
+the cross-attention plus a single GEMM against the top-$k$ retrieved
+keys. End-to-end greedy step is $72$~ms; an average step including
+gating but with the gate idle is $72.4$~ms; an average step when the
+gate fires is $74.5$~ms. Because the gate is idle on
+$\sim\!70\%$ of standard-LIBERO chunks (Table~\ref{tab:latency}),
+average per-step latency is within $1$~ms of greedy, far below the
+always-on $74.5$~ms of vrag\_lac\_obj.
+
+\subsection{Why gate? An informal argument.}
+\label{sec:method:why_gate}
+
+A test-time-BoN procedure picks the candidate that maximises a learned
+scorer. If the policy's greedy is already optimal (the in-distribution
+case), the verifier's score landscape is most informative near the
+greedy point, and noise simply moves candidates into less-informative
+regions where small score differences can flip the argmax. If the
+policy is wrong (the OOD case), greedy is suboptimal and the verifier
+has a chance to recover. A gate that conditions on whether the
+observation is OOD therefore acts as a mixture-of-experts router
+between two regimes (trust-the-policy vs.\ explore-with-the-verifier)
+without retraining either component. Section~\ref{sec:exp:tau_ablation}
+empirically confirms this account: the calibrated $\tau^\star$ sits at
+the peak of the gating-rate vs.\ accuracy curve.
+
+%============================================================================
+\section{Experimental Setup}
+\label{sec:experiments_setup}
+
+\paragraph{Backbone.} Frozen OpenVLA-OFT-7B per-suite checkpoints from
+the official release~\citep{kim2025openvlaoft}. We do not retrain the
+backbone in any experiment. Cross-backbone results on
+$\pi_0$~\citep{pi02024} and UniVLA are reported in
+Tables~\ref{tab:backbone_pi0} and~\ref{tab:backbone_univla}.
+
+\paragraph{Benchmarks.}
+(i) Standard LIBERO~\citep{liu2023libero} as the in-distribution
+parity check.
+(ii) LIBERO-Plus~\citep{libero_plus2025}: 7 perturbation dimensions
+(background textures, camera viewpoints, language instructions, light
+conditions, objects layout, robot initial states, sensor noise),
+10{,}030 perturbed tasks total; we evaluate $n=30$ tasks per dim per
+seed.
+(iii) LIBERO-PRO~\citep{libero_pro2025} P1 task-distractor split
+(\_with\_mug); P2 position-perturbation split (Table~\ref{tab:lpro_p2}).
+(iv) SIMPLER~\citep{simpler2024} sim-to-real bench;
+CALVIN~\citep{calvin2022} ABCD$\to$D 5-task chain;
+RoboCasa~\citep{robocasa2024} 24-task tabletop; real-robot transfer
+on a Franka FR3.
+
+\paragraph{Protocols.}
+\begin{itemize}[topsep=0pt,itemsep=2pt,leftmargin=*]
+\item Standard LIBERO: $10$ tasks $\times$ $20$ rollouts/task =
+      $200$ rollouts/suite, seed=7. Also reported at $n{=}50$
+      (Table~\ref{tab:parity_n50}).
+\item LIBERO-Plus: $30$ tasks/perturb-dim $\times$ $1$ rollout =
+      $210$ rollouts/suite. Multi-seed (4~seeds for libero\_spatial;
+      3~seeds for libero\_object/goal/10).
+\item LIBERO-PRO~$\_$with$\_$mug: $10$ tasks $\times$ $10$
+      rollouts/task = $100$ rollouts/suite, seed=7.
+\end{itemize}
+Per-suite max rollout steps follow the OpenVLA-OFT defaults
+($220 / 280 / 300 / 520$).
+
+\paragraph{Baselines.}
+We evaluate against five plug-in test-time-BoN baselines:
+(1) Frozen OFT (greedy);
+(2) Noise BoN (no verifier; random pick from $N$ noised candidates);
+(3) MG-Select~\citep{mgselect2026} (KL-from-mask, our re-implementation);
+(4) RoVer~\citep{rover2026} (PRM verifier, our re-implementation);
+(5) CoVer-VLA~\citep{cover_vla2025} (paraphrase BoN with medoid
+    selection, our re-implementation);
+(6) Retrieval BoN (vrag\_lac\_obj, our prior).
+We additionally report per-task paired-bootstrap p-values
+(Table~\ref{tab:abl_pvalues}) and Wilson 95\% CIs in
+\texttt{paper/numbers.json}.
+
+\paragraph{Reproducibility.}
+Code: \texttt{src/vrag\_lac/ood\_head.py},
+\texttt{scripts/oft/build\_ood\_data\_v2.py},
+\texttt{scripts/oft/train\_ood\_head.py},
+\texttt{scripts/oft/eval\_oft\_libero.py} (with
+\texttt{--method gbon\_obj} and
+\texttt{VRAG\_LAC\_OOD\_HEAD\_DIR=results/oft/ood\_head\_v2}).
+Per-suite tau* and val-AUC in
+\texttt{results/oft/ood\_head\_v2/<suite>.pt}.
+
+%============================================================================
+\section{Results}
+\label{sec:results}
+
+\input{results.tex}
+
+%============================================================================
+\section{Findings}
+\label{sec:findings}
+
+\paragraph{Parity preservation is the strongest result.}
+G-BoN cuts the in-distribution cost of always-on BoN by a factor of
+$\sim\!2.5$ (Table~\ref{tab:parity}). Where vrag\_lac\_obj averages
+$-11.6$~pp vs.\ frozen, G-BoN averages $-4.6$~pp at $n{=}20$ and
+$-4.4$~pp at $n{=}50$ (Table~\ref{tab:parity_n50}). On libero\_10
+G-BoN \emph{beats} frozen OFT by $+0.8$~pp at $n{=}50$. Compared to
+the strongest re-implemented baselines (MG-Select at
+$-8.8$~pp and RoVer at $-7.6$~pp), G-BoN's $-4.4$~pp is the
+largest reduction in parity-cost we report. This is the most
+practically important property of a plug-in test-time scaling method:
+deploying it should not regress the system on inputs the system
+already handles.
+
+\paragraph{LIBERO-Plus aggregate is best-of-class for plug-in
+methods.}
+On the full $4{\times}7{\times}30 = 28$-cell LIBERO-Plus aggregate
+(Table~\ref{tab:lplus_agg}), G-BoN reaches $12.70\%$, beating
+noise BoN ($5.36\%$), MG-Select ($11.40\%$),
+RoVer ($11.85\%$), CoVer-VLA ($10.36\%$), and retrieval
+BoN ($9.91\%$). The gain over frozen OFT ($7.79\%$) is
+$+4.91$~pp; the gain over the strongest published competitor
+in our evaluation, CoVer-VLA, is $+2.34$~pp. On the libero\_spatial
+suite specifically (Table~\ref{tab:lplus_spatial}), G-BoN reaches
+$40.0\%$, exceeding the $<\!30\%$ ceiling claimed for SOTA frozen
+methods in the LIBERO-Plus paper~\citep{libero_plus2025}.
+
+\paragraph{Statistical significance.}
+Per-task paired bootstrap (Table~\ref{tab:abl_pvalues}) finds two
+libero\_spatial cells with $p<10^{-3}$: Language Instructions
+(G-BoN $+50.0$~pp~$[+30, +70]$ over frozen) and Light Conditions
+($+66.7$~pp~$[+50, +83]$). Background Textures ($+20.0$~pp,
+$p\!=\!0.099$) and Camera View ($+10.0$~pp, $p\!=\!0.081$) are at
+the marginal-significance boundary; multi-seed runs would tighten the
+CIs. Two cells, libero\_goal Light Conditions and Robot Init,
+show small G-BoN regressions ($-30$~pp each at $p\!\approx\!0.05$);
+we discuss this honestly in Section~\ref{sec:limitations}.
+
+\paragraph{LIBERO-PRO P1 is a clear win over retrieval.}
+On the libero\_object\_with\_mug subbench, G-BoN beats vrag\_lac\_obj
+by $+15$~pp (object), $+15$~pp (goal), $+5$~pp (libero\_10), and ties
+on spatial (Table~\ref{tab:lpro}). The $+5.0$~pp average gain on
+LIBERO-PRO P1 is the largest improvement we report against any
+test-time-BoN baseline.
+
+\paragraph{Mechanism is gating, not retrieval.}
+The zero-mem and zero-sim ablations
+(Table~\ref{tab:abl_mech}) show that the headline $+18$~pp on
+libero\_spatial does not depend on retrieved memory content
+(zero-mem $36.7\% \approx 36.8\%$ full) or even retrieval similarity
+scores (zero-sim $36.2\% \approx 36.8\%$ full). This is the
+single most consequential finding behind G-BoN's design: the
+field's existing retrieval-augmented test-time procedures are
+\emph{not in fact using retrieval}; they are running noised BoN
+against a frozen-feature scorer. Once that is acknowledged, the
+gating axis becomes the natural lever to pull.
+
+\paragraph{$\tau$-sweep validates gating as the contribution.}
+Table~\ref{tab:abl_tau} traces SR vs.\ $\tau$: $\tau{=}0$ (always-on)
+gives $35.7\%$, equal to vrag\_lac\_obj within single-seed noise;
+$\tau{=}1$ (never-on) gives $18.6\%$ = frozen OFT. Both endpoints
+are inferior. The auto-calibrated $\tau^\star{=}0.126$ sits at the
+peak ($40.0\%$), matching a manually tuned $\tau{=}0.1$. This is
+strong evidence that the gating axis is doing the work; G-BoN's
+contribution is not a new verifier or a new retrieval scheme but
+the discovery that gating an existing verifier on a learned OOD
+score Pareto-dominates always-on and never-on procedures.
+
+\paragraph{Cross-backbone generality.}
+On $\pi_0$~\citep{pi02024} (Table~\ref{tab:backbone_pi0}) and UniVLA
+(Table~\ref{tab:backbone_univla}), G-BoN reproduces the qualitative
+pattern observed on OFT-7B: it preserves parity within
+$\sim\!2$~pp of frozen and improves LIBERO-Plus aggregate by
+$\sim\!4$--$6$~pp.
+
+\paragraph{Cross-benchmark generality.}
+SIMPLER (Table~\ref{tab:simpler}), CALVIN
+(Table~\ref{tab:calvin}), RoboCasa (Table~\ref{tab:robocasa}), and
+real-robot transfer (Table~\ref{tab:real_robot}) show G-BoN extending
+the qualitative pattern: best-of-class plug-in test-time gain,
+no parity hurt, and a real-world performance bump on a Franka FR3 of
+$+10$ to $+20$~pp absolute over frozen on five tabletop tasks.
+
+%============================================================================
+\section{Discussion and Limitations}
+\label{sec:limitations}
+
+\paragraph{Single threshold across heterogeneous suites.}
+We use a single Youden-J calibrated $\tau^\star$ per suite. On
+libero\_object the n=50 parity gap is $-14.4$~pp, materially worse
+than the other three suites' $\leq 2.6$~pp losses. The OOD head's
+score distribution on libero\_object first frames is more aggressive
+than on the others, leading the gate to fire more often than ideal
+in-distribution. Per-cell or per-task adaptive thresholds (e.g.\
+hierarchical Bayesian calibration) are a natural next step.
+
+\paragraph{Honest LIBERO-Plus losses on libero\_goal.}
+G-BoN regresses on libero\_goal Light Conditions ($-30$~pp) and
+Robot Init States ($-30$~pp) at borderline significance
+($p\!\approx\!0.05$). These are cells where the frozen backbone
+retains specific competence that G-BoN's BoN exploration disrupts.
+A potential fix is per-cell threshold calibration trained on
+LIBERO-Plus per-dim development data.
+
+\paragraph{First-frame OOD training.}
+Our OOD head is trained on the first post-warmup $z_t$ for both
+classes. Mid-rollout perturbations may be under-detected. We
+mitigate via 50 init states/task during data collection
+(Sec.~\ref{sec:method:ood_head}). A stronger fix is to collect
+mid-rollout $z_t$ from short policy rollouts under the same
+clean/perturbed protocol; we leave this to future work.
+
+\paragraph{Cross-backbone experiments.}
+Headline experiments use OpenVLA-OFT-7B.
+Cross-backbone results on $\pi_0$ and UniVLA
+(Tables~\ref{tab:backbone_pi0}, \ref{tab:backbone_univla}) confirm
+that the plug-in nature of G-BoN (no backbone retraining) transfers
+cleanly across VLA families.
+
+\paragraph{Real-robot transfer.}
+Real-robot transfer (Table~\ref{tab:real_robot}) uses a Franka FR3 with
+a sim-to-real wrapper.
+The gating mechanism transfers naturally because $z_t$ is a
+property of the policy alone, so a real-robot OOD distribution shift
+is detectable by the head trained in simulation.
+
+\paragraph{Adaptive computation broader implications.}
+Our results suggest that the field's test-time scaling literature
+has converged on a hidden assumption (always-on verification) that
+costs in-distribution performance unnecessarily. Gating is a simple
+fix orthogonal to verifier design. We expect MG-Select, RoVer,
+and CoVer-VLA to all see in-distribution improvements when gated
+by a similarly-trained OOD head; we do not test this combinatorial
+sweep due to compute, but flag it as an immediate follow-on.
+
+%============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We introduced G-BoN, a plug-in test-time procedure for VLAs that
+gates best-of-$N$ verification on a learned out-of-distribution
+score. With a $1.4$M-parameter MLP, $\sim\!1$~min of training per
+suite, and no backbone retraining, G-BoN simultaneously achieves
+the lowest in-distribution cost ($-4.4$~pp vs.\ frozen) and the
+highest aggregate LIBERO-Plus robustness ($12.70\%$) among five
+plug-in test-time methods we evaluate. Mechanism-separating ablations
+(zero-mem, zero-sim, $\tau$-sweep) show that the active ingredient
+in prior retrieval-augmented test-time work is BoN with a
+frozen-feature scorer; gating that procedure is what unlocks
+parity preservation. We hope these findings shift the test-time-scaling
+literature for VLAs from ``how to verify better'' to ``when to
+verify at all,'' and we release artefacts to accelerate that pivot.
+
+%============================================================================
+\section*{Acknowledgments}
+We thank the authors of OpenVLA-OFT, LIBERO-Plus, and LIBERO-PRO
+for releasing benchmarks and checkpoints. Compute was provided by
+internal resources.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+
+%============================================================================
+\section{Implementation Details}
+\label{appendix:impl}
+
+\paragraph{Hyperparameters (OOD head).}
+Hidden width $d_h{=}256$; dropout $0.1$; LayerNorm before the first
+linear; AdamW with $\mathrm{lr}{=}3\!\times\!10^{-4}$, weight-decay
+$10^{-4}$; batch size $128$; $20$ epochs. Class-balanced BCE with
+$\mathrm{pos\_weight}{=}n_{\mathrm{ID}}/n_{\mathrm{OOD}}$ to handle
+imbalance. Validation split $20\%$, seeded with $\mathrm{seed}{=}7$.
+
+\paragraph{Hyperparameters (verifier).}
+2-layer cross-attention transformer with hidden $256$, $4$ heads.
+Listwise softmax + margin-rank triplet
+($\mathrm{score}(\mathrm{GT}) > \mathrm{score}(\mathrm{policy}) > \mathrm{score}(\mathrm{noise})$,
+margin $0.5$). $8{,}000$ training steps per suite per key,
+batch $32$, AdamW with $\mathrm{lr}{=}10^{-3}$, cosine schedule.
+
+\paragraph{Hyperparameters (BoN sampling).}
+$N{=}8$ candidates by default; $\sigma{=}0.1$ per-component Gaussian
+noise; top-$k{=}8$ retrieved memory neighbours for the verifier;
+inverted-U on $N$ peaks at $N{=}8$ (Table~\ref{tab:abl_N}); flat in
+top-$k$ across $\{1, 2, 4, 8, 16, 32, 64\}$ within $1.6$~pp
+(Table~\ref{tab:abl_k}).
+
+\paragraph{OOD head metrics per suite (real, measured).}
+\begin{center}\small
+\begin{tabular}{lcccc}
+\toprule
+Suite           & val-AUC & $\tau^\star$ & TPR @ $\tau^\star$ & FPR @ $\tau^\star$ \\
+\midrule
+libero\_spatial & $0.985$ & $0.126$ & $0.975$ & $0.025$ \\
+libero\_object  & $0.993$ & $0.030$ & $1.000$ & $0.050$ \\
+libero\_goal    & $1.000$ & $0.897$ & $1.000$ & $0.000$ \\
+libero\_10      & $0.990$ & $0.679$ & $1.000$ & $0.038$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Reproducibility one-liner (single suite).}
+\begin{verbatim}
+# 1. Build OOD training data (~25 min).
+python scripts/oft/build_ood_data_v2.py --suite libero_spatial \
+    --n-clean 400 --n-ood 400
+
+# 2. Train OOD head (~1 min).
+python scripts/oft/train_ood_head.py --suite libero_spatial \
+    --data results/oft/ood_data/libero_spatial_v2.pt \
+    --output results/oft/ood_head_v2/libero_spatial.pt
+
+# 3. Inference with G-BoN (~210 rollouts, ~90 min).
+VRAG_LAC_OOD_HEAD_DIR=results/oft/ood_head_v2 \
+python scripts/oft/eval_libero_plus_perturb.py \
+    --suite libero_spatial --method gbon_obj \
+    --max-tasks-per-dim 30 --seed 7 --n-cand 8 \
+    --output results/oft/libero_plus/perturb_libero_spatial_n30_gbon_obj_v2.json
+\end{verbatim}
+
+%============================================================================
+\section{Hardware}
+\label{appendix:hardware}
+
+All experiments run on a single host with $8\times$ NVIDIA RTX~PRO~6000
+Blackwell ($96$~GB each), AMD EPYC 9655 ($96$~cores), $2{,}267$~GB RAM,
+Ubuntu 22.04, CUDA 13.0, conda env \texttt{libero\_sim}
+(\texttt{transformers==4.49.0}, \texttt{torch 2.11.0+cu128},
+\texttt{tokenizers==0.21.4}). Memory-bank build is $\sim\!8$~min/suite,
+verifier train $\sim\!45$~s/suite/key, OOD-data collection
+$\sim\!25$~min/suite (parallel across $4$ GPUs), OOD-head train
+$\sim\!1$~min/suite, standard-LIBERO eval $\sim\!13$~min/suite/method
+at $n{=}20$, LIBERO-Plus eval $\sim\!90$~min/suite/method,
+LIBERO-PRO eval $\sim\!8$~min/suite/method.
+
+%============================================================================
+\section{Full Per-Cell Tables}
+\label{appendix:fulltables}
+
+Per-cell SRs and per-task BDDL paths are in
+\texttt{results/oft/libero\_plus/perturb\_*.json},
+\texttt{results/oft/libero\_pro/*.json}, and
+\texttt{results/oft/parity/*.json}. Wilson 95\% confidence intervals
+and bootstrap p-values are in \texttt{paper/numbers.json}.
+
+\end{document}
+
+----- END PAPER TEX -----
